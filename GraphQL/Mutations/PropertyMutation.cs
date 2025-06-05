@@ -44,4 +44,17 @@ public class PropertyMutation
         await repository.CreateAsync(property);
         return property;
     }
+
+    public async Task<bool> UpdatePropertyAsync(
+        Guid id,
+        UpdatePropertyInput input,
+        ClaimsPrincipal user,
+        [Service] PropertyRepository repository)
+    {
+        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new GraphQLException("No autorizado");
+
+        return await repository.UpdateAsync(id, Guid.Parse(userId), input);
+    }
 }

@@ -90,3 +90,4 @@
 /Users/pablotoledo/Desktop/PropertiesService/obj/Debug/net9.0/PropertiesService.pdb
 /Users/pablotoledo/Desktop/PropertiesService/obj/Debug/net9.0/PropertiesService.genruntimeconfig.cache
 /Users/pablotoledo/Desktop/PropertiesService/obj/Debug/net9.0/ref/PropertiesService.dll
+/Users/pablotoledo/Desktop/PropertiesService/obj/Debug/net9.0/PropertiesService.sourcelink.json
