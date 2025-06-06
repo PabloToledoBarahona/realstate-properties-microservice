@@ -15,7 +15,7 @@ using PropertiesService.GraphQL;
 using PropertiesService.GraphQL.Queries;
 using PropertiesService.GraphQL.Mutations;
 using PropertiesService.GraphQL.Types;
-using PropertiesService.Dtos;  // Para los tipos de input
+using PropertiesService.Dtos;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,12 +42,13 @@ builder.Services.AddScoped<PropertyRepository>();
 builder.Services.AddValidatorsFromAssemblyContaining<CreatePropertyRequestValidator>();
 
 // ─────────────────────────────────────────────────────────────
-// Autenticación y Autorización
+// Controladores
 // ─────────────────────────────────────────────────────────────
-builder.Services.AddAuthorization();
 builder.Services.AddControllers();
 
-// JWT Bearer
+// ─────────────────────────────────────────────────────────────
+// Autenticación y Autorización (JWT)
+// ─────────────────────────────────────────────────────────────
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -95,6 +96,7 @@ builder.Services
             }
         };
     });
+builder.Services.AddAuthorization();
 
 // ─────────────────────────────────────────────────────────────
 // Swagger / OpenAPI
@@ -104,7 +106,6 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Properties API", Version = "v1" });
 
-    // Configurar Swagger para aceptar JWT Bearer
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -133,24 +134,16 @@ builder.Services.AddSwaggerGen(c =>
 // ─────────────────────────────────────────────────────────────
 builder.Services
     .AddGraphQLServer()
-
-    // 1) Clase raíz "Query"
+    .AddAuthorization()                    // Habilita [Authorize] en GraphQL
     .AddQueryType<Query>()
-    // 2) Extensiones de Query
     .AddTypeExtension<PropertyQuery>()
-
-    // 3) Clase raíz "Mutation"
     .AddMutationType<Mutation>()
-    // 4) Extensión de Mutation
     .AddTypeExtension<PropertyMutation>()
-
-    // 5) Tipos de objeto (PropertyType)
     .AddType<PropertyType>()
-
-    // 6) Inputs explícitos
-    .AddType<CreatePropertyRequestType>()          // para CreatePropertyRequest
-    .AddType<UpdatePropertyInputType>()            // para UpdatePropertyInput
-    .AddType<UpdatePropertyStatusInputType>();     // para UpdatePropertyStatusInput
+    .AddType<CreatePropertyRequestType>()
+    .AddType<UpdatePropertyInputType>()
+    .AddType<UpdatePropertyStatusInputType>()
+    .ModifyRequestOptions(o => o.IncludeExceptionDetails = true);
 
 var app = builder.Build();
 

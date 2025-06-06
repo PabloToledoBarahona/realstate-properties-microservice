@@ -1,6 +1,7 @@
-namespace PropertiesService.Dtos;
-
-public class UpdatePropertyStatusInput
+namespace PropertiesService.Dtos
 {
-    public string Status { get; set; } = default!;
+    public class UpdatePropertyStatusInput
+    {
+        public string Status { get; set; } = default!; 
+    }
 }

@@ -19,8 +19,8 @@ namespace PropertiesService.Services
             if (_session == null)
             {
                 var cluster = Cluster.Builder()
-                    .AddContactPoint(_options.ContactPoint)
-                    .WithPort(_options.Port)
+                    .WithCloudSecureConnectionBundle(_options.SecureConnectBundlePath)
+                    .WithCredentials(_options.ClientId, _options.ClientSecret)
                     .Build();
 
                 _session = cluster.Connect(_options.Keyspace);
