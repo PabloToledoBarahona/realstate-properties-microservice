@@ -1,4 +1,3 @@
-// Program.cs
 using Microsoft.IdentityModel.Logging;
 using PropertiesService.Config;
 using PropertiesService.Services;
@@ -11,16 +10,17 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Security.Claims;
 
-// Estos “using” son para HotChocolate / GraphQL:
+// HotChocolate / GraphQL:
 using PropertiesService.GraphQL;
 using PropertiesService.GraphQL.Queries;
 using PropertiesService.GraphQL.Mutations;
 using PropertiesService.GraphQL.Types;
+using PropertiesService.Dtos;  // Para los tipos de input
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ─────────────────────────────────────────────────────────────
-// Logs JWT detallados (sólo para diagnóstico; quita en producción)
+// Logs JWT detallados (solo para diagnóstico; quitar en producción)
 // ─────────────────────────────────────────────────────────────
 IdentityModelEventSource.ShowPII = true;
 
@@ -104,7 +104,7 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Properties API", Version = "v1" });
 
-    // Configurar Swagger para que acepte JWT Bearer
+    // Configurar Swagger para aceptar JWT Bearer
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -118,7 +118,10 @@ builder.Services.AddSwaggerGen(c =>
     {
         {
             new OpenApiSecurityScheme {
-                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+                Reference = new OpenApiReference {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
             },
             Array.Empty<string>()
         }
@@ -131,21 +134,23 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services
     .AddGraphQLServer()
 
-    // 1) Registro explícito de la clase raíz “Query”
+    // 1) Clase raíz "Query"
     .AddQueryType<Query>()
-    // 2) Ahora extendemos esa Query pasando nuestros resolvers secundarios 
+    // 2) Extensiones de Query
     .AddTypeExtension<PropertyQuery>()
 
-    // 3) Registro explícito de la clase raíz “Mutation”
+    // 3) Clase raíz "Mutation"
     .AddMutationType<Mutation>()
-    // 4) Extensión de Mutation con los métodos de creación de propiedad
+    // 4) Extensión de Mutation
     .AddTypeExtension<PropertyMutation>()
 
-    // 5) Registramos nuestros tipos de objeto (PropertyType)
+    // 5) Tipos de objeto (PropertyType)
     .AddType<PropertyType>()
 
-    // 6) Registramos el input para CreatePropertyRequest
-    .AddType<CreatePropertyRequestType>();
+    // 6) Inputs explícitos
+    .AddType<CreatePropertyRequestType>()          // para CreatePropertyRequest
+    .AddType<UpdatePropertyInputType>()            // para UpdatePropertyInput
+    .AddType<UpdatePropertyStatusInputType>();     // para UpdatePropertyStatusInput
 
 var app = builder.Build();
 
@@ -161,7 +166,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Montamos GraphQL en /graphql (verás la UI de Banana Cake Pop en esa ruta)
+// Montamos GraphQL en "/graphql"
 app.MapGraphQL("/graphql");
 
 app.Run();
