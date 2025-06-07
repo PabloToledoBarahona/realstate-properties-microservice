@@ -6,6 +6,7 @@ using PropertiesService.Repositories;
 using PropertiesService.GraphQL;
 using HotChocolate.Authorization;
 using System.Security.Claims;
+using PropertiesService.Dtos;
 
 namespace PropertiesService.GraphQL.Queries;
 
@@ -31,6 +32,14 @@ public class PropertyQuery
             throw new GraphQLException("No autorizado");
 
         return await repository.GetByUserAsync(Guid.Parse(userId));
+    }
+
+    [GraphQLName("getPropertiesByFilter")]
+    public async Task<IEnumerable<Property>> GetPropertiesByFilterAsync(
+    PropertyFilterInput input,
+    [Service] PropertyRepository repository)
+    {
+        return await repository.GetByFilterAsync(input);
     }
 }
 

@@ -301,5 +301,75 @@ namespace PropertiesService.Repositories
                 UpdatedAt = DateTime.UtcNow
             });
         }
+
+
+        public async Task<IEnumerable<Property>> GetByFilterAsync(PropertyFilterInput input)
+        {
+            var conditions = new List<string>();
+            var parameters = new List<object>();
+
+            // Requisitos mínimos para consultar en properties_by_filter
+            if (input.City is null || input.PropertyType is null || input.TransactionType is null || input.Status is null)
+                return Enumerable.Empty<Property>();
+
+            conditions.Add("city = ?");
+            parameters.Add(input.City);
+
+            conditions.Add("property_type = ?");
+            parameters.Add(input.PropertyType);
+
+            conditions.Add("transaction_type = ?");
+            parameters.Add(input.TransactionType);
+
+            conditions.Add("status = ?");
+            parameters.Add(input.Status);
+
+            // Filtros adicionales (rango de precio, superficie)
+            if (input.MinPrice.HasValue)
+            {
+                conditions.Add("price >= ?");
+                parameters.Add(input.MinPrice.Value);
+            }
+            if (input.MaxPrice.HasValue)
+            {
+                conditions.Add("price <= ?");
+                parameters.Add(input.MaxPrice.Value);
+            }
+            if (input.MinArea.HasValue)
+            {
+                conditions.Add("area >= ?");
+                parameters.Add(input.MinArea.Value);
+            }
+            if (input.MaxArea.HasValue)
+            {
+                conditions.Add("area <= ?");
+                parameters.Add(input.MaxArea.Value);
+            }
+
+            var whereClause = string.Join(" AND ", conditions);
+            var cql = $"SELECT * FROM properties_by_filter WHERE {whereClause} ALLOW FILTERING";
+
+            var rs = await _session.ExecuteAsync(new SimpleStatement(cql, parameters.ToArray()));
+            return MapRowsToPartialProperties(rs);
+        }
+
+
+        private IEnumerable<Property> MapRowsToPartialProperties(RowSet rows)
+        {
+            return rows.Select(row => new Property
+            {
+                IdProperty = row.GetValue<Guid>("id_property"),
+                IdUser = row.GetValue<Guid>("id_user"),
+                Title = row.GetValue<string>("title"),
+                City = row.GetValue<string>("city"),
+                PropertyType = row.GetValue<string>("property_type"),
+                TransactionType = row.GetValue<string>("transaction_type"),
+                Status = row.GetValue<string>("status"),
+                Price = row.GetValue<decimal>("price"),
+                Area = row.GetValue<int>("area"),
+                CreatedAt = row.GetValue<DateTime>("created_at"),
+                UpdatedAt = DateTime.UtcNow
+            });
+        }
     }
 }
