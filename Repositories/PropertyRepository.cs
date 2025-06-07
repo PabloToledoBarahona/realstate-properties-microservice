@@ -141,23 +141,23 @@ namespace PropertiesService.Repositories
         {
             return rows.Select(row => new Property
             {
-                IdProperty      = row.GetValue<Guid>("id_property"),
-                IdUser          = row.GetValue<Guid>("id_user"),
-                Title           = row.GetValue<string>("title"),
-                Description     = row.GetValue<string>("description"),
-                Address         = row.GetValue<string>("address"),
-                City            = row.GetValue<string>("city"),
-                Country         = row.GetValue<string>("country"),
-                PropertyType    = row.GetValue<string>("property_type"),
+                IdProperty = row.GetValue<Guid>("id_property"),
+                IdUser = row.GetValue<Guid>("id_user"),
+                Title = row.GetValue<string>("title"),
+                Description = row.GetValue<string>("description"),
+                Address = row.GetValue<string>("address"),
+                City = row.GetValue<string>("city"),
+                Country = row.GetValue<string>("country"),
+                PropertyType = row.GetValue<string>("property_type"),
                 TransactionType = row.GetValue<string>("transaction_type"),
-                Price           = row.GetValue<decimal>("price"),
-                Area            = row.GetValue<int>("area"),
-                BuiltArea       = row.GetValue<int>("built_area"),
-                Bedrooms        = row.GetValue<int>("bedrooms"),
-                Status          = row.GetValue<string>("status"),
-                Photos          = row.GetValue<List<string>>("photos"),
-                CreatedAt       = row.GetValue<DateTime>("created_at"),
-                UpdatedAt       = row.GetValue<DateTime>("updated_at")
+                Price = row.GetValue<decimal>("price"),
+                Area = row.GetValue<int>("area"),
+                BuiltArea = row.GetValue<int>("built_area"),
+                Bedrooms = row.GetValue<int>("bedrooms"),
+                Status = row.GetValue<string>("status"),
+                Photos = row.GetValue<List<string>>("photos"),
+                CreatedAt = row.GetValue<DateTime>("created_at"),
+                UpdatedAt = row.GetValue<DateTime>("updated_at")
             });
         }
 
@@ -170,21 +170,21 @@ namespace PropertiesService.Repositories
                 return false;
 
             var updates = new List<string>();
-            var values  = new List<object>();
+            var values = new List<object>();
 
-            if (input.Title           != null) { updates.Add("title = ?");            values.Add(input.Title); }
-            if (input.Description     != null) { updates.Add("description = ?");      values.Add(input.Description); }
-            if (input.Address         != null) { updates.Add("address = ?");          values.Add(input.Address); }
-            if (input.City            != null) { updates.Add("city = ?");             values.Add(input.City); }
-            if (input.Country         != null) { updates.Add("country = ?");          values.Add(input.Country); }
-            if (input.PropertyType    != null) { updates.Add("property_type = ?");    values.Add(input.PropertyType); }
+            if (input.Title != null) { updates.Add("title = ?"); values.Add(input.Title); }
+            if (input.Description != null) { updates.Add("description = ?"); values.Add(input.Description); }
+            if (input.Address != null) { updates.Add("address = ?"); values.Add(input.Address); }
+            if (input.City != null) { updates.Add("city = ?"); values.Add(input.City); }
+            if (input.Country != null) { updates.Add("country = ?"); values.Add(input.Country); }
+            if (input.PropertyType != null) { updates.Add("property_type = ?"); values.Add(input.PropertyType); }
             if (input.TransactionType != null) { updates.Add("transaction_type = ?"); values.Add(input.TransactionType); }
-            if (input.Price.HasValue             ) { updates.Add("price = ?");            values.Add(input.Price.Value); }
-            if (input.Area.HasValue              ) { updates.Add("area = ?");             values.Add(input.Area.Value); }
-            if (input.BuiltArea.HasValue         ) { updates.Add("built_area = ?");       values.Add(input.BuiltArea.Value); }
-            if (input.Bedrooms.HasValue          ) { updates.Add("bedrooms = ?");         values.Add(input.Bedrooms.Value); }
-            if (input.Status          != null) { updates.Add("status = ?");           values.Add(input.Status); }
-            if (input.Photos          != null) { updates.Add("photos = ?");           values.Add(input.Photos); }
+            if (input.Price.HasValue) { updates.Add("price = ?"); values.Add(input.Price.Value); }
+            if (input.Area.HasValue) { updates.Add("area = ?"); values.Add(input.Area.Value); }
+            if (input.BuiltArea.HasValue) { updates.Add("built_area = ?"); values.Add(input.BuiltArea.Value); }
+            if (input.Bedrooms.HasValue) { updates.Add("bedrooms = ?"); values.Add(input.Bedrooms.Value); }
+            if (input.Status != null) { updates.Add("status = ?"); values.Add(input.Status); }
+            if (input.Photos != null) { updates.Add("photos = ?"); values.Add(input.Photos); }
 
             updates.Add("updated_at = ?");
             values.Add(DateTime.UtcNow);
@@ -222,6 +222,84 @@ namespace PropertiesService.Repositories
                 newStatus, currentUserId, createdAt.Value, idProperty));
 
             return true;
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // Delete
+        // ─────────────────────────────────────────────────────────────
+        public async Task<bool> DeleteAsync(Guid idProperty, Guid currentUserId)
+        {
+            // 1) Recuperamos la fila para chequear propietario y llaves de borrado
+            var row = (await _session.ExecuteAsync(
+                new SimpleStatement("SELECT * FROM properties_by_id WHERE id_property = ?", idProperty)))
+                .FirstOrDefault();
+
+            if (row is null || row.GetValue<Guid>("id_user") != currentUserId)
+                return false; // No existe o no es tuya
+
+            // Campos necesarios para eliminar índices
+            var city = row.GetValue<string>("city");
+            var propertyType = row.GetValue<string>("property_type");
+            var transactionType = row.GetValue<string>("transaction_type");
+            var status = row.GetValue<string>("status");
+            var createdAt = row.GetValue<DateTime>("created_at");
+
+            //
+            // 2) Borramos tabla principal
+            //
+            await _session.ExecuteAsync(new SimpleStatement(
+                "DELETE FROM properties_by_id WHERE id_property = ?", idProperty));
+
+            //
+            // 3) Borramos índices secundarios
+            //
+            // 3-a  properties_by_city
+            await _session.ExecuteAsync(new SimpleStatement(
+                "DELETE FROM properties_by_city WHERE city = ? AND id_property = ?",
+                city, idProperty));
+
+            // 3-b  properties_by_filter
+            await _session.ExecuteAsync(new SimpleStatement(@"
+        DELETE FROM properties_by_filter
+        WHERE  city = ?
+          AND  property_type = ?
+          AND  transaction_type = ?
+          AND  status = ?
+          AND  price = ?
+          AND  area  = ?
+          AND  id_property = ?",
+                city, propertyType, transactionType, status,
+                row.GetValue<decimal>("price"),
+                row.GetValue<int>("area"),
+                idProperty));
+
+            // 3-c  properties_by_user
+            await _session.ExecuteAsync(new SimpleStatement(@"
+        DELETE FROM properties_by_user
+        WHERE id_user = ? AND created_at = ? AND id_property = ?",
+                currentUserId, createdAt, idProperty));
+
+            return true;
+        }
+
+        public async Task<IEnumerable<Property>> GetByUserAsync(Guid userId)
+        {
+            var stmt = _session.Prepare("SELECT * FROM properties_by_user WHERE id_user = ?");
+            var bound = stmt.Bind(userId);
+            var rows = await _session.ExecuteAsync(bound);
+
+            return rows.Select(row => new Property
+            {
+                IdProperty = row.GetValue<Guid>("id_property"),
+                IdUser = userId,
+                Title = row.GetValue<string>("title"),
+                City = row.GetValue<string>("city"),
+                Country = row.GetValue<string>("country"),
+                Price = row.GetValue<decimal>("price"),
+                Status = row.GetValue<string>("status"),
+                CreatedAt = row.GetValue<DateTime>("created_at"),
+                UpdatedAt = DateTime.UtcNow
+            });
         }
     }
 }
