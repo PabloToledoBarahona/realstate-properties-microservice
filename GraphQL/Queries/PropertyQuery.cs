@@ -41,5 +41,14 @@ public class PropertyQuery
     {
         return await repository.GetByFilterAsync(input);
     }
+
+    [GraphQLName("getPropertyById")]
+    public async Task<Property?> GetPropertyByIdAsync(
+    Guid id,
+    [Service] PropertyRepository repository)
+    {
+        return await repository.GetByIdAsync(id);
+    }
+
 }
 

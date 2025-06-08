@@ -371,5 +371,36 @@ namespace PropertiesService.Repositories
                 UpdatedAt = DateTime.UtcNow
             });
         }
+
+        public async Task<Property?> GetByIdAsync(Guid id)
+        {
+            var stmt = _session.Prepare("SELECT * FROM properties_by_id WHERE id_property = ?");
+            var result = await _session.ExecuteAsync(stmt.Bind(id));
+            var row = result.FirstOrDefault();
+
+            if (row == null) return null;
+
+            return new Property
+            {
+                IdProperty = row.GetValue<Guid>("id_property"),
+                IdUser = row.GetValue<Guid>("id_user"),
+                Title = row.GetValue<string>("title"),
+                Description = row.GetValue<string>("description"),
+                Address = row.GetValue<string>("address"),
+                City = row.GetValue<string>("city"),
+                Country = row.GetValue<string>("country"),
+                PropertyType = row.GetValue<string>("property_type"),
+                TransactionType = row.GetValue<string>("transaction_type"),
+                Price = row.GetValue<decimal>("price"),
+                Area = row.GetValue<int>("area"),
+                BuiltArea = row.GetValue<int>("built_area"),
+                Bedrooms = row.GetValue<int>("bedrooms"),
+                Status = row.GetValue<string>("status"),
+                Photos = row.GetValue<List<string>>("photos"),
+                CreatedAt = row.GetValue<DateTime>("created_at"),
+                UpdatedAt = row.GetValue<DateTime>("updated_at")
+            };
+        }
+
     }
 }
