@@ -367,6 +367,7 @@ namespace PropertiesService.Repositories
                 Status = row.GetValue<string>("status"),
                 Price = row.GetValue<decimal>("price"),
                 Area = row.GetValue<int>("area"),
+                Photos = row.GetValue<List<string>>("photos"),
                 CreatedAt = row.GetValue<DateTime>("created_at"),
                 UpdatedAt = DateTime.UtcNow
             });
